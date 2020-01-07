@@ -4,7 +4,7 @@
 
 Usage:
 
-    python file.py <URL>
+    python modularity.py <URL>
 """
 
 from urllib.request import urlopen
