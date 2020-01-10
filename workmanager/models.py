@@ -11,8 +11,12 @@ TaskStatuses = {
 
 
 class IDObject(models.Model):
-    id = models.AutoField(primary_key=True, default=0)
+    id = models.AutoField(primary_key=True)
     pass
+
+    def get_json(self):
+        print({'id': self.id})
+        return {'id': self.id}
 
     class Meta:
         abstract = True
@@ -23,6 +27,11 @@ class NamedObject(IDObject):
 
     def __str__(self):
         return self.name
+
+    def get_json(self):
+        json = IDObject.get_json(self)
+        json.update({'name': self.name})
+        return json
 
     class Meta:
         abstract = True
@@ -46,3 +55,14 @@ class Task(NamedObject):
 
     def __str__(self):
         return self.name
+
+    def get_json(self):
+        json = NamedObject.get_json(self)
+        json.update({
+            'team': self.team,
+            'description': self.description,
+            'effort': self.effort,
+            'priority': self.priority,
+            'status': self.status,
+        })
+        return json
