@@ -11,14 +11,18 @@ TaskStatuses = {
 
 
 class IDObject(models.Model):
-    id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True, default=0)
+    pass
 
     class Meta:
         abstract = True
 
 
-class NamedObject(models.Model):
-    name = models.CharField(max_length=200, primary_key=True)
+class NamedObject(IDObject):
+    name = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.name
 
     class Meta:
         abstract = True
@@ -39,3 +43,6 @@ class Task(NamedObject):
             tuple((x, y) for (x, y) in TaskStatuses.items())
         )
     )
+
+    def __str__(self):
+        return self.name
