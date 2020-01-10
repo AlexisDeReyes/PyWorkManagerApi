@@ -1,18 +1,28 @@
-from django.http import HttpResponse, HttpResponseBadRequest as Http400, Http404, as Json
+from django.http import HttpResponse, HttpResponseBadRequest as Http400, Http404, JsonResponse
+import json
 from .models import Team, Task
+
+
+def Json(data):
+    return JsonResponse(data, safe=False)
 
 
 def no_method_for_resouce(request):
     return Http404('Cannot perform method {} on resource {}'.format(request.method, request.path))
 
 
-def missing_required_field(request, field_name):
-    return Http400('body for {r.method} Request on resource {r.path}, must contain field {}'.format(r=request, field_name))
+def missing_required_field(request, field_names):
+    return Http400('body for {r.method} Request on resource {r.path}, must contain fields {}'.format(', '.join(field_names), r=request))
 
 
 def handle_base_request(request):
     if request.method == 'POST':
-        return create(request, request.POST.get('name'))
+        body = json.loads(request.body.decode('utf-8'))
+        fields = ['name']
+        if body.get(fields[0]) != None:
+            return create(request, body.get(fields[0]))
+        else:
+            return missing_required_field(request, fields)
     elif request.method == 'GET':
         return get(request)
     else:
@@ -33,13 +43,13 @@ def handle_specific_request(request, team_id):
 
 
 def get(request):
-    return JsonResponse([team.get_json() for team in Team.objects.all()])
+    return Json([team.get_json() for team in Team.objects.all()])
 
 
 def create(request, team_name):
     team = Team(name=team_name)
     team.save()
-    return JsonResponse(team.get_json)
+    return Json(team.get_json())
 
 
 def delete(request, team):
