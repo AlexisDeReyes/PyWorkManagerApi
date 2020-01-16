@@ -2,8 +2,9 @@
 """Library containing the handlers associated with the Teams Resouce"""
 
 
-from .request_utils import route_base_request, route_specific_request, Http404, JsonResponse, no_method_for_resouce, no_items_found
 from django.http import HttpRequest
+from django.db.utils import IntegrityError
+from .request_utils import route_base_request, route_specific_request, Http404, JsonResponse, no_method_for_resouce, no_items_found
 from .models import Team, Task
 
 
@@ -55,11 +56,17 @@ def create(body: dict):
 
     Returns:
         dict -- dict representing the new team
+
+    Raises:
+        IntegrityError -- will hold information about required fields
     """
-    team_name = body.get('name')
-    team = Team(name=team_name)
-    team.save()
-    return team.get_json()
+    if len(body) > 0:
+        team_name = body.get('name')
+        team = Team(name=team_name)
+        team.save()
+        return team.get_json()
+    else:
+        raise IntegrityError("_team.name")
 
 
 def delete(request: HttpRequest, team: Team):

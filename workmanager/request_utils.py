@@ -16,7 +16,7 @@ def Json(data: object) -> HttpResponse:
     Returns:
         HttpResponse -- Http response with json body
     """
-    return JsonResponse(data)
+    return JsonResponse(data, safe=False)
 
 
 def no_method_for_resouce(request: HttpRequest) -> Http404:
@@ -43,17 +43,29 @@ def no_items_found(request: HttpRequest) -> Http404:
     return HttpResponseNotFound('request for resource {} returned no results'.format(request.path))
 
 
-def missing_required_field(request: HttpRequest, field_names: list) -> Http400:
-    """responds to the request with a 400 bad request
+def handle_integrity_error(error: IntegrityError, request: HttpRequest) -> Http400:
+    """Handles Integrity errors and responds with a 400 bad request
+
+    Can Correspond with unique constraints as well as missing or invalid data
 
     Arguments:\n
         request {HttpRequest} -- django HttpRequest
         field_names {list of str} -- list of field names missing or invalid
 
     Returns:
-        Http400 -- Http Response 404 not found
+        Http400 -- Http Response 400 Bad Request
     """
-    return Http400('body for {r.method} request on resource {r.path}, must contain fields {}'.format(', '.join(field_names), r=request))
+    error_messages = []
+    for item in error.args:
+        if item.find("constraint") > -1:
+            error_messages.append(item)
+
+        else:
+            error_messages.append(
+                'body for {r.method} request on resource {r.path}, must contain fields {field}'.format(
+                    r=request, field=item)
+            )
+    return Http400(error_messages)
 
 
 def route_base_request(request: HttpRequest, create_item, get_all):
@@ -77,7 +89,8 @@ def route_base_request(request: HttpRequest, create_item, get_all):
         try:
             return Json(create_item(body))
         except IntegrityError as error:
-            return missing_required_field(request, [field.split('_')[1] for field in error.args])
+            return handle_integrity_error(error, request)
+    return no_method_for_resouce(request)
 
 
 def route_specific_request(request: HttpRequest, model, id: int, delete) -> HttpResponse:
