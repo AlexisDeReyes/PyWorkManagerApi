@@ -38,6 +38,12 @@ class NamedObject(IDObject):
 
 
 class Team(NamedObject):
+    # def get_json(self):
+    #     json = NamedObject.get_json(self)
+    #     json.update({
+    #         'tasks': self.
+    #     })
+    #     return json
     pass
 
 
@@ -59,7 +65,7 @@ class Task(NamedObject):
     def get_json(self):
         json = NamedObject.get_json(self)
         json.update({
-            'team': self.team,
+            'team': self.team.name,
             'description': self.description,
             'effort': self.effort,
             'priority': self.priority,
