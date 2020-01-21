@@ -1,5 +1,6 @@
 from django.urls import path
-from . import team_views
+from . import views as team_views
+#from .. import task_views
 
 
 urlpatterns = [
