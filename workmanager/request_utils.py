@@ -68,22 +68,22 @@ def handle_integrity_error(error: IntegrityError, request: HttpRequest) -> Http4
     return Http400(error_messages)
 
 
-def route_base_request(request: HttpRequest, create_item, get_all):
-    """handles and routes requests for a base resource 'get all, create, etc...
+def route_base_request(request: HttpRequest, get_all, create_item):
+    """Handles and routes requests for a base resource 'get all, create, etc...
 
     Arguments:
         request {HttpRequest} -- django HttpRequest
-        create_item {function} -- function takes json object and returns newly created resource
-        get_all {function} -- function returns list of all items of resource
+        get_all {function} -- (HttpRequest) -> HttpResponse
+        create_item {function} -- (dict, request) -> HttpResponse -- function takes json object and request then returns newly created resource
 
     Returns:
         HttpResponse -- Http Response with the result(s) or an error
     """
     if request.method == 'GET':
-        results = get_all(request)
+        results = get_all()
         if len(results) > 0:
             return Json(results)
-        return Http404(request)
+        return no_items_found(request)
     if request.method == 'POST':
         body = json.loads(request.body.decode('utf-8'))
         try:
@@ -105,12 +105,22 @@ def route_specific_request(request: HttpRequest, model, id: int, delete) -> Http
     Returns:
         HttpResponse
     """
+    def routing_lambda(resource):
+        try:
+            if request.method == 'GET':
+                return Json(resource.get_json())
+            if request.method == 'DELETE':
+                return delete(request, resource)
+            return no_method_for_resouce(request)
+        except model.DoesNotExist:
+            return no_items_found(request)
+
+    return find_resource_continue_or_404(model, request, id, routing_lambda)
+
+
+def find_resource_continue_or_404(model, request: HttpRequest, id: int, what_next) -> HttpResponse:
     try:
         resource = model.objects.get(pk=id)
-        if request.method == 'GET':
-            return Json(resource.get_json())
-        if request.method == 'DELETE':
-            return delete(request, resource)
-        return no_method_for_resouce(request)
+        return what_next(resource)
     except model.DoesNotExist:
         return no_items_found(request)
